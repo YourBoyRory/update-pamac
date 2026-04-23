@@ -1,0 +1,9 @@
+{
+    "libpamac-aur": {
+        "ENABLE_FLATPAK": 1,
+        "ENABLE_SNAPD": 0
+    },
+    "pamac-aur": {
+        "ENABLE_FAKE_GNOME_SOFTWARE": 1
+    }
+}
