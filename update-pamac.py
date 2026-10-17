@@ -21,6 +21,11 @@ parser.add_argument(
     action="store_true",
     help="Clean build dir after running"
 )
+parser.add_argument(
+    "--force",
+    action="store_true",
+    help="Skips update check and reinstalls programs."
+)
 args = parser.parse_args()
 
 with open(f"{PAMAC_OPTIONS_DIR}/pamac-options.json", "r") as f:
@@ -57,7 +62,26 @@ for package, options in data.items():
 
 # Install
 for package in data:
-    if os.path.exists(package) and os.path.isdir(package):
-        subprocess.run(["makepkg", "-si"], cwd=package)
-        if args.dont_keep:
-            shutil.rmtree(package)
+    if not args.force:
+        result = subprocess.run(
+            ["yay", "-Qu", package],
+            capture_output=True,
+            text=True
+        )
+        updates = result.stdout.strip()
+        error = result.stderr.strip()
+        code = result.returncode
+    else:
+        code = 0
+        updates = "Forcing Updates"
+    if code == 0 and updates:
+        if os.path.exists(package) and os.path.isdir(package):
+            subprocess.run(["makepkg", "-si"], cwd=package)
+            if args.dont_keep:
+                shutil.rmtree(package)
+    elif code in [0,1] and not error:
+        print(package, "is up to date!")
+    else:
+        print(f"\n{error}\n\n")
+        sys.exit(code)
+
