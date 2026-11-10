@@ -34,9 +34,7 @@ os.makedirs(BUILD_DIR, exist_ok=True)  # creates all missing folders
 os.chdir(BUILD_DIR)
 
 
-
-# Configure
-for package, options in data.items():
+def download_package(package, options):
     if args.clean_build and os.path.exists(package) and os.path.isdir(package):
         shutil.rmtree(package)
     subprocess.run(["yay", "-G", package])
@@ -60,8 +58,14 @@ for package, options in data.items():
     else:
         warnings.warn(f"{file_path} done not exist", RuntimeWarning)
 
-# Install
-for package in data:
+def install_package(package):
+    if os.path.exists(package) and os.path.isdir(package):
+        subprocess.run(["makepkg", "-si"], cwd=package)
+        if args.dont_keep:
+            shutil.rmtree(package)
+
+# Configure
+for package, options in data.items():
     if not args.force:
         result = subprocess.run(
             ["yay", "-Qu", package],
@@ -75,13 +79,10 @@ for package in data:
         code = 0
         updates = "Forcing Updates"
     if code == 0 and updates:
-        if os.path.exists(package) and os.path.isdir(package):
-            subprocess.run(["makepkg", "-si"], cwd=package)
-            if args.dont_keep:
-                shutil.rmtree(package)
+        download_package(package, options)
+        install_package(package)
     elif code in [0,1] and not error:
         print(package, "is up to date!")
     else:
-        print(f"\n{error}\n\n")
-        sys.exit(code)
+        warnings.warn(f"{error}", RuntimeWarning)
 
